@@ -3,59 +3,57 @@
   factory();
 }(function () { 'use strict';
 
-  var xhrHook = {
-    init: (cb) => {
-      let xhr = window.XMLHttpRequest;
-      if (xhr._eagle_monitor_flag === true) {
-        return void 0;
+  let formatError = (errorObj)=>{
+    let col = errorObj.column || errorObj.columnNumber;
+    let row = errorObj.line || errorObj.lineNumber;
+    let errorType = errorObj.name;
+    let message = errorObj.message;
+
+    let {stack} = errorObj;
+    if (stack) {
+      let matchUrl = stack.match(/(https|http)?:\/\/[^\n]+/);
+      let urlFirstStack = matchUrl ? matchUrl[0]: '';
+      let regUrlCheck = /(https|http)?:\/\/(\S)*\.js/;
+
+      // 获取真正的URL
+      let resourceUrl = '';
+      if (regUrlCheck.test(urlFirstStack)) {
+        resourceUrl = urlFirstStack.match(regUrlCheck)[0];
       }
-      xhr._eagle_monitor_flag === true;
-      let _originOpen = xhr.prototype.open;
-      xhr.prototype.open = function (method, url, async, user, password) {
-        this._eagle_xhr_info = {
-          url,method,status: null
-        };
-        return _originOpen.apply(this, arguments);
-      };
 
-      let _originSend = xhr.prototype.send;
+      // 获取真正的行信息
+      let stackCol = null;
+      let stackRow = null;
+      let posStack = urlFirstStack.match(/:(\d+):(\d+)/);
 
-      xhr.prototype.send = function (value) {
-        let _self= this;
-        this._eagle_start_time = Date.now();
-        let ajaxEnd = (eventType)=> ()=>{
-          if(_self.response){
-            let responseSize = null;
-            switch (_self.responseType) {
-              case 'json':
-                // JSON兼容性问题
-                responseSize = JSON.stringify(_self.response).length;
-                break;
-              case 'arraybuffer':
-                responseSize = _self.response.byteLength;
-              default:
-                responseSize = _self.responseText.length;
-            }
-            _self._eagle_xhr_info.event = eventType;
-            _self._eagle_xhr_info.status = _self.status;
-            _self._eagle_xhr_info.success = _self.status === 200;
-            _self._eagle_xhr_info.duration = Date.now() - _self._eagle_start_time;
-            _self._eagle_xhr_info.responseSize
-             = responseSize;
-             _self._eagle_xhr_info.requestSize = value? value.length : 0; // value 一定有 length
-            _self._eagle_xhr_info.type = 'xhr';
-            cb(_self._eagle_xhr_info);
-          }
-        };
+      if (posStack && posStack.length >= 3) {
+        [, stackCol, stackRow] = posStack;
+      }
 
-        // 这三种状态都代表这请求已经结束了 需要统计一些信息 并报上去
-        this.addEventListener('load', ajaxEnd('load'), false);
-        this.addEventListener('error', ajaxEnd('error'), false);
-        this.addEventListener('abort', ajaxEnd('abort'), false);
-
-        return _originSend.apply(this, arguments);
-      };
+      return {
+        content: stack,
+        col: Number(col || stackCol),
+        row: Number(row || stackRow),
+        errorType, message, resourceUrl
+      }
     }
+  };
+
+  var errorCatch = {
+      init: (cb)=>{
+        let _origin_error = window.onerror;
+        window.onerror = function(message, source, lineno, colno, error) {
+
+          let errorInfo = formatError(error);
+          errorInfo.type = 'error';
+          errorInfo._message = message;
+          errorInfo._source = source;
+          errorInfo._lineno = lineno;
+          errorInfo._colno = colno;
+          cb(errorInfo);
+          _origin_error && _origin_error.apply(window, arguments);
+        };
+      }
   };
 
   // import perf from './perf.js'
@@ -69,8 +67,12 @@
   //     console.log('resource init', resourceData);
   // })
 
-  xhrHook.init((xhrInfo) => {
-      console.log('xhrInfo init', xhrInfo);
+  // xhrHook.init((xhrInfo) => {
+  //     console.log('xhrInfo init', xhrInfo);
+  // })
+
+  errorCatch.init((errObj) => {
+    console.log('errorCatch init', errObj);
   });
 
 }));

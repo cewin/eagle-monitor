@@ -50,5 +50,41 @@ export default {
 
       return _originSend.apply(this, arguments);
     }
+
+    if(window.fetch){
+      let _origin_fetch = window.fetch;
+      window.fetch = function () {
+        let startTime = Date.now();
+        let args = [].slice.call(arguments);
+
+        let fetchInput = args[0];
+        let method = 'GET';
+        let url = null;
+
+        if (typeof fetchInput === 'string') {
+          url = fetchInput;
+        } else if ('Request' in window && fetchInput instanceof window.Request) {
+          url = fetchInput.url;
+          method = fetchInput.method ? fetchInput.method : method;
+        } else {
+          url = '' + fetchInput;
+        }
+
+        // 要上报的数据
+        let eagleFetchData = {
+          method,
+          url,
+          status: null
+        }
+
+        return _origin_fetch.apply(this, args).then(function (response) {
+          eagleFetchData.status = response.status;
+          eagleFetchData.type = 'fetch';
+          eagleFetchData.duration = Date.now() - startTime;
+          cb(eagleFetchData)
+          return response.text()
+        });
+      }
+    }
   }
 }

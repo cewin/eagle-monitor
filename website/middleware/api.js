@@ -17,12 +17,9 @@ module.exports = async (ctx, next) =>{
     }
   };
   
-  
-
   for (const key in apiMap) {
     if (ctx.path.includes(key)) {
       ctx.body = apiMap[key];
-      console.log('next', ctx.path, ctx.body);
       break;     
     }
   }
