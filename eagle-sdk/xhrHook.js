@@ -1,4 +1,5 @@
 export default {
+  // TODO 自身错误上报的请求无需拦截
   init: (cb) => {
     let xhr = window.XMLHttpRequest;
     if (xhr._eagle_monitor_flag === true) {

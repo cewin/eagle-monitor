@@ -1,7 +1,8 @@
 // import perf from './perf.js'
 // import resource from './resource.js'
 // import xhrHook from './xhrHook.js'
-import errorCatch from './errorCatch.js'
+// import errorCatch from './errorCatch.js'
+import beh from './beh.js'
 
 
 // perf.init((perform)=>{
@@ -16,6 +17,13 @@ import errorCatch from './errorCatch.js'
 //     console.log('xhrInfo init', xhrInfo);
 // })
 
-errorCatch.init((errObj) => {
-  console.log('errorCatch init', errObj);
+// errorCatch.init((errObj) => {
+//   console.log('errorCatch init', errObj);
+// }) 
+
+beh.init((val) => {
+  console.log('beh init', val);
+
+  new Image('http://www.asldjs.gif?type=error&data=${val}')
 })
+

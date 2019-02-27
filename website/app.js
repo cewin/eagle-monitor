@@ -1,10 +1,12 @@
 let Koa = require('koa');
 let serve = require('koa-static');
 const API = require('./middleware/api.js');
+const sourceMap = require('./middleware/sourceMap.js');
 
 const app = new Koa();
 const port = 3003;
 
+app.use(sourceMap);
 app.use(API);
 // app.use((c)=>{
 //     c.body = 123
